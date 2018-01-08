@@ -17,13 +17,13 @@ If interval is 0, it never prints sentence to stdout. 60 seconds and ":12345" ad
 ## How to Install
 
 ```sh
-go get https://github.com/orkunkaraduman/lipsumgo.git
+go get github.com/orkunkaraduman/lipsumgo
 ```
 
 ## With Docker
 
 ```sh
-git clone https://github.com/orkunkaraduman/lipsumgo.git
+git clone git@github.com:orkunkaraduman/lipsumgo.git
 cd lipsumgo
 docker build -t lipsumgo .
 docker run --rm -it -p 12345:12345 lipsumgo -n 60 -a :12345
