@@ -41,14 +41,20 @@ func getSentence() string {
 }
 
 func httpHandler(w http.ResponseWriter, r *http.Request) {
+	snt := getSentence()
 	h := w.Header()
 	h["Content-Type"] = []string{"text/plain"}
 	h["Cache-Control"] = []string{"no-cache, no-store"}
 	var s string
-	s += fmt.Sprintf("RemoteAddr: %s\n", r.RemoteAddr)
 	s += fmt.Sprintf("RequestURI: %s\n", r.RequestURI)
-	s += fmt.Sprintf("\n%s\n", getSentence())
-	w.Write([]byte(s))
+	s += fmt.Sprintf("RemoteAddr: %s\n", r.RemoteAddr)
+	s += fmt.Sprintf("\n%s\n", snt)
+	n, err := w.Write([]byte(s))
+	s = ""
+	if err != nil {
+		s = err.Error()
+	}
+	log.Printf("%s [HTTP]\n%s %s %d %s", snt, r.RequestURI, r.RemoteAddr, n, s)
 }
 
 func main() {
