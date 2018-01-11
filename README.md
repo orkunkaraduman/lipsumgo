@@ -2,7 +2,7 @@
 
 lipsumgo is a testing microservice with HTTP. The microservice generates "lorem ipsum" sentences and
 prints standard output periodically. Also listens a HTTP port. HTTP responses include
-a "lorem ipsum" sentence with some request headers: RemoteAddr, RequestURI.
+a "lorem ipsum" sentence with some request headers: RequestURI, RemoteAddr.
 
 ## Usage
 
