@@ -10,7 +10,7 @@ import (
 
 func httpsrvInit(addr string, logger *log.Logger,
 	handler func(http.ResponseWriter, *http.Request)) (*http.Server, chan error) {
-	listenErrChan := make(chan error, 1)
+	listenErrChan := make(chan error)
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      http.HandlerFunc(handler),

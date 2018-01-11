@@ -68,27 +68,30 @@ func main() {
 
 	log.SetOutput(os.Stdout)
 
+	sigChan := make(chan os.Signal)
+	signal.Notify(sigChan, os.Interrupt, os.Kill, syscall.SIGTERM)
+
 	server, listenErrChan := httpsrvInit(addr, nil, httpHandler)
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, os.Kill, syscall.SIGTERM)
+	timer := time.NewTimer(0)
 
-	var startTime time.Time
-
-	for len(sig) <= 0 {
-		if len(listenErrChan) > 0 {
-			err := <-listenErrChan
-			if err != nil && err == http.ErrServerClosed {
-				break
+mainloop:
+	for {
+		select {
+		case <-sigChan:
+			break mainloop
+		case listenErr := <-listenErrChan:
+			if listenErr != nil && listenErr == http.ErrServerClosed {
+				break mainloop
 			}
-			panic(err)
+			panic(listenErr)
+		case <-timer.C:
+			if interval == 0 {
+				continue mainloop
+			}
+			timer.Reset(time.Duration(interval) * time.Second)
+			log.Print(getSentence())
 		}
-		if interval == 0 || (!startTime.IsZero() && time.Now().Sub(startTime) < time.Duration(interval)*time.Second) {
-			time.Sleep(20 * time.Millisecond)
-			continue
-		}
-		log.Print(getSentence())
-		startTime = time.Now()
 	}
 
 	if err := httpsrvClose(server, 30*time.Second); err != nil {
