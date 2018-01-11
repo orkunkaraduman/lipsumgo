@@ -66,9 +66,9 @@ func main() {
 	flag.StringVar(&addr, "a", ":12345", "bind address")
 	flag.Parse()
 
-	server, listenErrChan := httpsrvInit(addr, nil, httpHandler)
+	log.SetOutput(os.Stdout)
 
-	loggerOut := log.New(os.Stdout, "", log.LstdFlags)
+	server, listenErrChan := httpsrvInit(addr, nil, httpHandler)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill, syscall.SIGTERM)
@@ -87,7 +87,7 @@ func main() {
 			time.Sleep(20 * time.Millisecond)
 			continue
 		}
-		loggerOut.Print(getSentence())
+		log.Print(getSentence())
 		startTime = time.Now()
 	}
 
