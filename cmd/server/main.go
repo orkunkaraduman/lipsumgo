@@ -19,6 +19,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
 	"lipsumgo/pkg/pb"
@@ -133,7 +134,15 @@ func main() {
 
 	grpcSrv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(promgrpc.UnaryServerInterceptor, grpcUnaryInterceptor),
-		grpc.ChainStreamInterceptor(promgrpc.StreamServerInterceptor, grpcStreamInterceptor))
+		grpc.ChainStreamInterceptor(promgrpc.StreamServerInterceptor, grpcStreamInterceptor),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             5 * time.Second,
+			PermitWithoutStream: true,
+		}),
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionAge:      10 * time.Second,
+			MaxConnectionAgeGrace: 30 * time.Second,
+		}))
 	pb.RegisterApiServer(grpcSrv, &server.Api{})
 	_ = pb.RegisterApiHandler(context.Background(), gwMux, gwConn)
 
