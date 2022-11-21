@@ -1,44 +1,15 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
-
-var sentenceMu sync.Mutex
-var sentenceBuf = bytes.NewBufferString("")
-var sentenceIdx int
-
-func getSentence() string {
-	sentenceMu.Lock()
-	defer sentenceMu.Unlock()
-	var s string
-	for {
-		var err error
-		s, err = sentenceBuf.ReadString('.')
-		if err != nil {
-			if err == io.EOF {
-				sentenceBuf = bytes.NewBufferString(lipsum)
-				sentenceIdx = 0
-				continue
-			}
-			panic(err)
-		}
-		sentenceIdx++
-		break
-	}
-	return fmt.Sprintf("%s #%d", strings.TrimSpace(s), sentenceIdx)
-}
 
 func httpHandler(w http.ResponseWriter, r *http.Request) {
 	snt := getSentence()
