@@ -42,7 +42,7 @@ func main() {
 			log.Printf("get sentence error: %v", err)
 			continue
 		}
-		log.Printf("sentence: %s", rep.Sentence)
+		log.Printf("sentence: %q %d", rep.Sentence, rep.Index)
 		select {
 		case <-ctx.Done():
 		case <-time.After(time.Second):
