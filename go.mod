@@ -1,4 +1,4 @@
-module github.com/orkunkaraduman/lipsumgo
+module lipsumgo
 
 go 1.18
 

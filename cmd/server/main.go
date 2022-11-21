@@ -21,8 +21,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
-	"github.com/orkunkaraduman/lipsumgo/pkg/pb"
-	"github.com/orkunkaraduman/lipsumgo/pkg/server"
+	"lipsumgo/pkg/pb"
+	"lipsumgo/pkg/server"
 )
 
 var (

@@ -5,8 +5,8 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/orkunkaraduman/lipsumgo/pkg/lipsum"
-	"github.com/orkunkaraduman/lipsumgo/pkg/pb"
+	"lipsumgo/pkg/lipsum"
+	"lipsumgo/pkg/pb"
 )
 
 type Api struct {
