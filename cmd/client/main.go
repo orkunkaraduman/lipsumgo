@@ -40,9 +40,9 @@ func main() {
 		rep, err := cl.GetSentence(ctx, &emptypb.Empty{})
 		if err != nil {
 			log.Printf("get sentence error: %v", err)
-			continue
+		} else {
+			log.Printf("sentence: %q %d", rep.Sentence, rep.Index)
 		}
-		log.Printf("sentence: %q %d", rep.Sentence, rep.Index)
 		select {
 		case <-ctx.Done():
 		case <-time.After(time.Second):
