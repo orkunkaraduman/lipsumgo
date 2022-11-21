@@ -15,7 +15,7 @@ import (
 	"time"
 
 	promgrpc "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -125,6 +125,7 @@ func main() {
 		grpc.ChainUnaryInterceptor(promgrpc.UnaryServerInterceptor, grpcUnaryInterceptor),
 		grpc.ChainStreamInterceptor(promgrpc.StreamServerInterceptor, grpcStreamInterceptor))
 	pb.RegisterApiServer(grpcSrv, &server.Api{})
+	_ = pb.RegisterApiHandler(context.Background(), gwMux, gwConn)
 
 	go func() {
 		if e := httpSrv.Serve(httpLis); e != nil && e != http.ErrServerClosed {
@@ -142,6 +143,7 @@ func main() {
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Kill, os.Interrupt, syscall.SIGTERM)
+	<-ch
 
 	var wg sync.WaitGroup
 
