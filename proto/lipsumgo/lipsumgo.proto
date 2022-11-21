@@ -1,5 +1,5 @@
 syntax = "proto3";
-package nyx;
+package lipsumgo;
 option go_package = "lipsumgo/pkg/pb";
 
 import "google/protobuf/empty.proto";

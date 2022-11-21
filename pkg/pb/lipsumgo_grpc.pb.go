@@ -36,7 +36,7 @@ func NewApiClient(cc grpc.ClientConnInterface) ApiClient {
 
 func (c *apiClient) GetSentence(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ApiGetSentenceReply, error) {
 	out := new(ApiGetSentenceReply)
-	err := c.cc.Invoke(ctx, "/nyx.Api/GetSentence", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/lipsumgo.Api/GetSentence", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func _Api_GetSentence_Handler(srv interface{}, ctx context.Context, dec func(int
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/nyx.Api/GetSentence",
+		FullMethod: "/lipsumgo.Api/GetSentence",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ApiServer).GetSentence(ctx, req.(*emptypb.Empty))
@@ -93,7 +93,7 @@ func _Api_GetSentence_Handler(srv interface{}, ctx context.Context, dec func(int
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Api_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nyx.Api",
+	ServiceName: "lipsumgo.Api",
 	HandlerType: (*ApiServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

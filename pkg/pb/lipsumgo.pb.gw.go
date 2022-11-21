@@ -64,7 +64,7 @@ func RegisterApiHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/nyx.Api/GetSentence", runtime.WithHTTPPathPattern("/api/sentence"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/lipsumgo.Api/GetSentence", runtime.WithHTTPPathPattern("/api/sentence"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -128,7 +128,7 @@ func RegisterApiHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/nyx.Api/GetSentence", runtime.WithHTTPPathPattern("/api/sentence"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/lipsumgo.Api/GetSentence", runtime.WithHTTPPathPattern("/api/sentence"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
