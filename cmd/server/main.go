@@ -25,6 +25,12 @@ import (
 	"github.com/orkunkaraduman/lipsumgo/pkg/server"
 )
 
+var (
+	appName    string
+	appVersion string
+	appBuild   string
+)
+
 func main() {
 	var httpListenAddr string
 	var grpcListenAddr string
@@ -34,6 +40,8 @@ func main() {
 
 	log.SetOutput(os.Stdout)
 
+	log.Printf("starting %s version %s build %s", appName, appVersion, appBuild)
+
 	httpLis, err := net.Listen("tcp", httpListenAddr)
 	if err != nil {
 		log.Fatalf("http listen error: %v", err)
@@ -41,6 +49,7 @@ func main() {
 	}
 	//goland:noinspection GoUnhandledErrorResult
 	defer httpLis.Close()
+	log.Printf("listening http %s", httpListenAddr)
 
 	grpcLis, err := net.Listen("tcp", grpcListenAddr)
 	if err != nil {
@@ -49,6 +58,7 @@ func main() {
 	}
 	//goland:noinspection GoUnhandledErrorResult
 	defer grpcLis.Close()
+	log.Printf("listening grpc %s", grpcListenAddr)
 
 	gwMux := runtime.NewServeMux()
 	gwConn, _ := grpc.Dial(grpcListenAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -127,6 +137,8 @@ func main() {
 	pb.RegisterApiServer(grpcSrv, &server.Api{})
 	_ = pb.RegisterApiHandler(context.Background(), gwMux, gwConn)
 
+	log.Printf("running %s", appName)
+
 	go func() {
 		if e := httpSrv.Serve(httpLis); e != nil && e != http.ErrServerClosed {
 			log.Printf("http serve error: %v", e)
@@ -177,4 +189,6 @@ func main() {
 	}()
 
 	wg.Wait()
+
+	log.Printf("stopped %s", appName)
 }

@@ -14,7 +14,7 @@ PROJECTNAME := lipsumgo
 VERSION := $(shell git describe --tags --always)
 BUILD := $(shell git rev-parse --short HEAD)
 
-GOBUILDFLAGS := -ldflags "-X=github.com/goinsane/application.name=$(PROJECTNAME) -X=github.com/goinsane/application.version=$(VERSION) -X=github.com/goinsane/application.build=$(BUILD)"
+GOBUILDFLAGS := -ldflags "-X=main.appName=$(PROJECTNAME) -X=main.appVersion=$(VERSION) -X=main.appBuild=$(BUILD)"
 
 .DEFAULT_GOAL := help
 
