@@ -25,6 +25,7 @@ all: clean build
 build:
 	mkdir -p target/
 	CGO_ENABLED=1 $(GOBUILD) $(GOBUILDFLAGS) -mod readonly -v -o target/lipsumgo-server ./cmd/server
+	CGO_ENABLED=1 $(GOBUILD) $(GOBUILDFLAGS) -mod readonly -v -o target/lipsumgo-client ./cmd/client
 	# build ok
 
 clean:
