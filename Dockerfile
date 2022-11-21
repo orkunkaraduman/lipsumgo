@@ -1,20 +1,22 @@
-FROM golang:1.9-alpine AS build
-
-WORKDIR /go/src/github.com/orkunkaraduman/lipsumgo
-COPY . .
-
-RUN go-wrapper download
-RUN go-wrapper install
-
-ENTRYPOINT ["go-wrapper", "run"]
-
-
-FROM alpine:3.7
+FROM golang:1.18-alpine AS builder
 
 RUN apk upgrade --no-cache && apk add --no-cache \
-    openssl ca-certificates
+    make git
+
+WORKDIR /src
+COPY . .
+RUN make vendor
+RUN make build
+RUN mv target/ /app/
+RUN cp -a docker/entrypoint.sh /app/
+
+FROM alpine:3.16
+
+RUN apk upgrade --no-cache && apk add --no-cache \
+    bash openssl ca-certificates
+
+COPY --from=builder /app /app
 
 WORKDIR /app
-COPY --from=build /go/bin/lipsumgo .
 
-ENTRYPOINT [ "./lipsumgo" ]
+ENTRYPOINT [ "./entrypoint.sh" ]
