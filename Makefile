@@ -46,7 +46,7 @@ proto:
 	# proto ok
 
 vendor:
-	$(GOMOD) tidy
+	$(GOMOD) download
 	$(GOMOD) vendor
 	$(GOMOD) verify
 	# vendor ok
