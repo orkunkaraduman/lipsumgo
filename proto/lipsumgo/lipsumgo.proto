@@ -1,0 +1,22 @@
+syntax = "proto3";
+package nyx;
+option go_package = "lipsumgo/pkg/pb";
+
+import "google/protobuf/empty.proto";
+//import "google/protobuf/struct.proto";
+//import "google/protobuf/wrappers.proto";
+
+import "google/api/annotations.proto";
+
+service Api {
+  rpc GetSentence(google.protobuf.Empty) returns (ApiGetSentenceReply) {
+    option (google.api.http) = {
+      get: "/api/sentence"
+    };
+  }
+}
+
+message ApiGetSentenceReply {
+  string sentence = 1;
+  int32 index = 2;
+}
