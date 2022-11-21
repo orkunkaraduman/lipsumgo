@@ -1,71 +1,178 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"fmt"
+	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
+
+	promgrpc "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
+
+	"github.com/orkunkaraduman/lipsumgo/pkg/pb"
+	"github.com/orkunkaraduman/lipsumgo/pkg/server"
 )
 
-func httpHandler(w http.ResponseWriter, r *http.Request) {
-	snt := getSentence()
-	h := w.Header()
-	h["Content-Type"] = []string{"text/plain"}
-	h["Cache-Control"] = []string{"no-cache, no-store"}
-	var s string
-	s += fmt.Sprintf("RequestURI: %s\n", r.RequestURI)
-	s += fmt.Sprintf("RemoteAddr: %s\n", r.RemoteAddr)
-	s += fmt.Sprintf("\n%s\n", snt)
-	n, err := w.Write([]byte(s))
-	s = ""
-	if err != nil {
-		s = err.Error()
-	}
-	log.Printf("%s [HTTP]\n%s %s %d %s", snt, r.RequestURI, r.RemoteAddr, n, s)
-}
-
 func main() {
-	var interval uint
-	flag.UintVar(&interval, "interval", 60, "interval in seconds")
-	flag.UintVar(&interval, "n", 60, "interval in seconds")
-	var addr string
-	flag.StringVar(&addr, "addr", ":12345", "bind address")
-	flag.StringVar(&addr, "a", ":12345", "bind address")
+	var httpListenAddr string
+	var grpcListenAddr string
+	flag.StringVar(&httpListenAddr, "http-listen", ":8080", "http listen address")
+	flag.StringVar(&grpcListenAddr, "grpc-listen", ":9000", "grpc listen address")
 	flag.Parse()
 
 	log.SetOutput(os.Stdout)
 
-	sigChan := make(chan os.Signal)
-	signal.Notify(sigChan, os.Interrupt, os.Kill, syscall.SIGTERM)
+	httpLis, err := net.Listen("tcp", httpListenAddr)
+	if err != nil {
+		log.Fatalf("http listen error: %v", err)
+		return
+	}
+	//goland:noinspection GoUnhandledErrorResult
+	defer httpLis.Close()
 
-	server, listenErrChan := httpsrvInit(addr, nil, httpHandler)
+	grpcLis, err := net.Listen("tcp", grpcListenAddr)
+	if err != nil {
+		log.Fatalf("grpc listen error: %v", err)
+		return
+	}
+	//goland:noinspection GoUnhandledErrorResult
+	defer grpcLis.Close()
 
-	timer := time.NewTimer(0)
+	gwMux := runtime.NewServeMux()
+	gwConn, _ := grpc.Dial(grpcListenAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	//goland:noinspection GoUnhandledErrorResult
+	defer gwConn.Close()
 
-mainloop:
-	for {
-		select {
-		case <-sigChan:
-			break mainloop
-		case listenErr := <-listenErrChan:
-			if listenErr != nil && listenErr == http.ErrServerClosed {
-				break mainloop
+	httpMux := http.NewServeMux()
+	httpMux.HandleFunc("/debug/pprof/", pprof.Index)
+	httpMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	httpMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	httpMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	httpMux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	httpMux.Handle("/metrics/", promhttp.Handler())
+	httpMux.Handle("/api/", gwMux)
+	httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if p := recover(); p != nil {
+				log.Printf("panic in http handler %q: %v", r.RequestURI, p)
+				return
 			}
-			panic(listenErr)
-		case <-timer.C:
-			if interval == 0 {
-				continue mainloop
+		}()
+		httpMux.ServeHTTP(w, r)
+	})
+	httpSrv := &http.Server{
+		Handler:           httpHandler,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       65 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+		ErrorLog:          log.New(ioutil.Discard, "", log.LstdFlags),
+	}
+
+	grpcUnaryInterceptor := func(handlerCtx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler) (reply interface{}, err error) {
+		defer func() {
+			if p := recover(); p != nil {
+				log.Printf("panic in grpc unary rpc %q: %v", info.FullMethod, p)
+				return
 			}
-			timer.Reset(time.Duration(interval) * time.Second)
-			log.Print(getSentence())
+		}()
+		reply, err = handler(handlerCtx, req)
+		if err != nil {
+			if s, ok := status.FromError(err); ok {
+				log.Printf("grpc unary rpc error: method=%q code=%d desc=%q", info.FullMethod, s.Code(), s.Message())
+			} else {
+				log.Printf("grpc unary rpc custom error in %q: %v", info.FullMethod, err)
+			}
 		}
+		return
+	}
+	grpcStreamInterceptor := func(srv interface{},
+		stream grpc.ServerStream,
+		info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler) (err error) {
+		defer func() {
+			if p := recover(); p != nil {
+				log.Printf("panic in grpc stream rpc %q: %v", info.FullMethod, p)
+				return
+			}
+		}()
+		err = handler(srv, stream)
+		if err != nil {
+			if s, ok := status.FromError(err); ok {
+				log.Printf("grpc stream rpc error: method=%q code=%d desc=%q", info.FullMethod, s.Code(), s.Message())
+			} else {
+				log.Printf("grpc stream rpc custom error in %q: %v", info.FullMethod, err)
+			}
+		}
+		return
 	}
 
-	if err := httpsrvClose(server, 30*time.Second); err != nil {
-		log.Print(err)
-	}
+	grpcSrv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(promgrpc.UnaryServerInterceptor, grpcUnaryInterceptor),
+		grpc.ChainStreamInterceptor(promgrpc.StreamServerInterceptor, grpcStreamInterceptor))
+	pb.RegisterApiServer(grpcSrv, &server.Api{})
+
+	go func() {
+		if e := httpSrv.Serve(httpLis); e != nil && e != http.ErrServerClosed {
+			log.Printf("http serve error: %v", e)
+			return
+		}
+	}()
+
+	go func() {
+		if e := grpcSrv.Serve(grpcLis); e != nil && e != grpc.ErrServerStopped {
+			log.Printf("grpc serve error: %v", e)
+			return
+		}
+	}()
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Kill, os.Interrupt, syscall.SIGTERM)
+
+	var wg sync.WaitGroup
+
+	termCtx, termCtxCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer termCtxCancel()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if e := httpSrv.Shutdown(termCtx); e != nil {
+			log.Printf("http shutdown error: %v", e)
+			return
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		gracefulStoppedCh := make(chan struct{})
+		go func() {
+			grpcSrv.GracefulStop()
+			close(gracefulStoppedCh)
+		}()
+		select {
+		case <-termCtx.Done():
+			grpcSrv.Stop()
+			log.Printf("grpc shutdown error: %v", termCtx.Err())
+			return
+		case <-gracefulStoppedCh:
+		}
+	}()
+
+	wg.Wait()
 }
