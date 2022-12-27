@@ -24,10 +24,9 @@
 *.idea
 *.vscode
 
-go/
+/.go
 /vendor
 /target
 
 /LOCALNOTES
-
 /*.conf
