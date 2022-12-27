@@ -24,7 +24,6 @@
 *.idea
 *.vscode
 
-/.go
 /vendor
 /target
 

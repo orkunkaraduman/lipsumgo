@@ -7,18 +7,16 @@ GOGET := $(GOCMD) get
 
 OS := $(shell uname | tr '[:upper:]' '[:lower:]')
 ARCH := $(shell uname -m | tr '[:upper:]' '[:lower:]')
-PLATFORM ?= linux/amd64
 
 PROJECTNAME := lipsumgo
 VERSION := $(shell git describe --tags --always)
 BUILD := $(shell git rev-parse --short HEAD)
 DOCKERIMAGE ?= $(PROJECTNAME)
+DOCKERPLATFORM ?= linux/amd64
 
 GOBUILDFLAGS := -ldflags "-X=main.appName=$(PROJECTNAME) -X=main.appVersion=$(VERSION) -X=main.appBuild=$(BUILD)"
-GOPATH := $(PWD)/.go
 
 .DEFAULT_GOAL := help
-
 .PHONY: all build clean clean-all test proto vendor vendor-clean docker help
 
 all: clean build
@@ -54,12 +52,11 @@ vendor:
 
 vendor-clean:
 	rm -rf vendor/
-	chmod -R 700 "$(PWD)/.go" && rm -rf "$(PWD)/.go"
 	# vendor-clean ok
 
 docker:
 	docker buildx build \
-	  --platform "$(PLATFORM)" \
+	  --platform "$(DOCKERPLATFORM)" \
 	  --progress plain \
 	  -f Dockerfile \
 	  -t "$(DOCKERIMAGE):$(BUILD)" \
