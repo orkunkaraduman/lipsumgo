@@ -2,4 +2,4 @@
 
 set -e
 
-exec "./lipsumgo-$1" "${@:1}"
+exec "./lipsumgo-$1" "${@:2}"
