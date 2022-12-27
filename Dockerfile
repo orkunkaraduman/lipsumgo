@@ -1,4 +1,9 @@
-FROM golang:1.18-alpine AS builder
+FROM golang:1.18-alpine AS base
+
+RUN apk upgrade --no-cache && apk add --no-cache \
+    make git
+
+FROM base AS builder
 
 RUN apk upgrade --no-cache && apk add --no-cache \
     make git
