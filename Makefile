@@ -1,5 +1,3 @@
-ROOT := $(PWD)
-
 GOCMD := go
 GOBUILD := $(GOCMD) build
 GOCLEAN := $(GOCMD) clean
@@ -9,23 +7,26 @@ GOGET := $(GOCMD) get
 
 OS := $(shell uname | tr '[:upper:]' '[:lower:]')
 ARCH := $(shell uname -m | tr '[:upper:]' '[:lower:]')
+PLATFORM ?= linux/amd64
 
 PROJECTNAME := lipsumgo
 VERSION := $(shell git describe --tags --always)
 BUILD := $(shell git rev-parse --short HEAD)
+DOCKERIMAGE ?= $(PROJECTNAME)
 
 GOBUILDFLAGS := -ldflags "-X=main.appName=$(PROJECTNAME) -X=main.appVersion=$(VERSION) -X=main.appBuild=$(BUILD)"
+GOPATH := $(PWD)/.go
 
 .DEFAULT_GOAL := help
 
-.PHONY: all build clean clean-all test proto vendor vendor-clean help
+.PHONY: all build clean clean-all test proto vendor vendor-clean docker help
 
 all: clean build
 
-build:
+build: vendor
 	mkdir -p target/
-	CGO_ENABLED=1 $(GOBUILD) $(GOBUILDFLAGS) -mod readonly -v -o target/lipsumgo-server ./cmd/server
-	CGO_ENABLED=1 $(GOBUILD) $(GOBUILDFLAGS) -mod readonly -v -o target/lipsumgo-client ./cmd/client
+	CGO_ENABLED=0 $(GOBUILD) $(GOBUILDFLAGS) -mod readonly -v -o target/lipsumgo-server ./cmd/server
+	CGO_ENABLED=0 $(GOBUILD) $(GOBUILDFLAGS) -mod readonly -v -o target/lipsumgo-client ./cmd/client
 	# build ok
 
 clean:
@@ -53,7 +54,18 @@ vendor:
 
 vendor-clean:
 	rm -rf vendor/
+	chmod -R 700 "$(PWD)/.go" && rm -rf "$(PWD)/.go"
 	# vendor-clean ok
+
+docker:
+	docker buildx build \
+	  --platform "$(PLATFORM)" \
+	  --progress plain \
+	  -f Dockerfile \
+	  -t "$(DOCKERIMAGE):$(BUILD)" \
+	  -t "$(DOCKERIMAGE):$(VERSION)" \
+	  .
+	# docker ok
 
 help: Makefile
 	@echo "To make \"$(PROJECTNAME)\", use one of the following commands:"
@@ -65,5 +77,6 @@ help: Makefile
 	@echo "    proto"
 	@echo "    vendor"
 	@echo "    vendor-clean"
+	@echo "    docker"
 	@echo "    help"
 	@echo
